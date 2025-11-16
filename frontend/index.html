@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android eBPF Profiler</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">🔍 eBPF</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#devices" class="nav-item active" onclick="switchSection('devices')">
+                    <span class="nav-icon">📱</span>
+                    <span class="nav-text">Devices</span>
+                </a>
+                <a href="#tracing" class="nav-item" onclick="switchSection('tracing')">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Tracing</span>
+                </a>
+                <a href="#scripts" class="nav-item" onclick="switchSection('scripts')">
+                    <span class="nav-icon">📝</span>
+                    <span class="nav-text">Custom Scripts</span>
+                </a>
+                <a href="#results" class="nav-item" onclick="switchSection('results')">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-text">Results</span>
+                </a>
+                <a href="#active" class="nav-item" onclick="switchSection('active')">
+                    <span class="nav-icon">🔴</span>
+                    <span class="nav-text">Active Traces</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-secondary btn-sm" onclick="refreshDevices()" title="Refresh devices">
+                    🔄 Refresh
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="header">
+                <h1>🔍 Android eBPF Profiler</h1>
+                <p class="subtitle">Real-time kernel tracing and performance analysis</p>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Devices Section -->
+                <section class="content-section active" id="section-devices">
+                    <div class="card devices-section">
+                        <div class="card-header">
+                            <h2>📱 Connected Devices</h2>
+                        </div>
+                        <div id="devices-container" class="devices-grid">
+                            <div class="loading">Loading devices...</div>
+                        </div>
+                    </div>
+
+                    <!-- Device Capabilities Section -->
+                    <section class="card capabilities-section" style="display: none;" id="capabilities-section">
+                        <div class="card-header">
+                            <h2>🛠️ Device Capabilities</h2>
+                        </div>
+                        <div id="capabilities-container" class="capabilities-table">
+                            <p>Select a device to view capabilities</p>
+                        </div>
+                    </section>
+                </section>
+
+                <!-- Tracing Section -->
+                <section class="content-section" id="section-tracing">
+                    <section class="card tracing-section">
+                        <div class="card-header">
+                            <h2>⚙️ Tracing Tools</h2>
+                        </div>
+                        <div class="tracing-grid">
+                            <!-- Syscall Trace -->
+                            <div class="trace-card">
+                                <div class="trace-header">
+                                    <h3>📊 Syscall Trace</h3>
+                                    <p class="trace-desc">Monitor all system calls made by processes</p>
+                                </div>
+                                <div class="trace-controls">
+                                    <label>Duration (seconds):</label>
+                                    <input type="number" id="syscall-duration" value="30" min="1" max="300">
+                                    <label>Process Name (optional):</label>
+                                    <input type="text" id="syscall-process" placeholder="e.g., com.app.name">
+                                </div>
+                                <button class="btn btn-primary" onclick="startSyscallTrace()">▶ Start Trace</button>
+                            </div>
+
+                            <!-- File Access Trace -->
+                            <div class="trace-card">
+                                <div class="trace-header">
+                                    <h3>📁 File Access Trace</h3>
+                                    <p class="trace-desc">Monitor file open/close/read/write operations</p>
+                                </div>
+                                <div class="trace-controls">
+                                    <label>Duration (seconds):</label>
+                                    <input type="number" id="fileaccess-duration" value="30" min="1" max="300">
+                                </div>
+                                <button class="btn btn-primary" onclick="startFileAccessTrace()">▶ Start Trace</button>
+                            </div>
+
+                            <!-- Memory Trace -->
+                            <div class="trace-card">
+                                <div class="trace-header">
+                                    <h3>💾 Memory Trace</h3>
+                                    <p class="trace-desc">Monitor memory allocation (mmap, madvise, brk)</p>
+                                </div>
+                                <div class="trace-controls">
+                                    <label>Duration (seconds):</label>
+                                    <input type="number" id="memory-duration" value="30" min="1" max="300">
+                                </div>
+                                <button class="btn btn-primary" onclick="startMemoryTrace()">▶ Start Trace</button>
+                            </div>
+                        </div>
+                    </section>
+                </section>
+
+                <!-- Custom Scripts Section -->
+                <section class="content-section" id="section-scripts">
+                    <!-- Create Custom Script -->
+                    <section class="card create-script-section">
+                        <div class="card-header">
+                            <h2>✏️ Create Custom Script</h2>
+                        </div>
+                        <div class="form-group">
+                            <label for="script-name">Script Name:</label>
+                            <input type="text" id="script-name" placeholder="e.g., my_trace" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="script-content">BPFtrace Script Content:</label>
+                            <textarea id="script-content" placeholder="kprobe:vfs_open
+{
+    printf(\"file: %s\", str(arg1->d_name.name));
+}" class="form-textarea"></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="saveCustomScript()">💾 Save Script</button>
+                    </section>
+
+                    <!-- Available Scripts -->
+                    <section class="card scripts-list-section">
+                        <div class="card-header">
+                            <h2>📚 Available Scripts</h2>
+                        </div>
+                        <div id="scripts-container" class="scripts-grid">
+                            <div class="loading">Loading scripts...</div>
+                        </div>
+                    </section>
+
+                    <!-- Run Custom Trace -->
+                    <section class="card run-custom-trace-section">
+                        <div class="card-header">
+                            <h2>🎯 Run Custom Trace</h2>
+                        </div>
+                        <div class="form-group">
+                            <label for="custom-script">Select Script:</label>
+                            <select id="custom-script" class="form-input">
+                                <option value="">Loading scripts...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="custom-duration">Duration (seconds):</label>
+                            <input type="number" id="custom-duration" value="30" min="1" max="300" class="form-input">
+                        </div>
+                        <button class="btn btn-primary" onclick="startCustomTrace()">▶ Start Trace</button>
+                    </section>
+                </section>
+
+                <!-- Results Section -->
+                <section class="content-section" id="section-results">
+                    <section class="card results-section">
+                        <div class="card-header">
+                            <h2>📈 Trace Results</h2>
+                            <button class="btn btn-secondary btn-sm" onclick="clearResults()">Clear</button>
+                        </div>
+                        <div id="results-container" class="results-grid">
+                            <div class="no-results">No trace results yet</div>
+                        </div>
+                    </section>
+                </section>
+
+                <!-- Active Traces Section -->
+                <section class="content-section" id="section-active">
+                    <section class="card active-traces-section">
+                        <div class="card-header">
+                            <h2>� Active Traces</h2>
+                        </div>
+                        <div id="active-traces-container" class="traces-list">
+                            <p class="no-traces">No active traces</p>
+                        </div>
+                    </section>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
